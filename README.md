@@ -1,1 +1,1 @@
-# DreamMapper
+DreamMapper is a Flask-based server designed to manage and store dreams and user profiles effectively. This project leverages the power of SQLAlchemy for database operations, connecting seamlessly to PostgreSQL. It features robust routes for user interaction, JSON parsing middleware for easy data handling, and operates on port 5000 for both development and production environments. Ideal for anyone looking to explore the world of dreams through a digital lens.
