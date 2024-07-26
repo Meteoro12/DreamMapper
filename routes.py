@@ -10,7 +10,7 @@ def add_dream():
     data = request.json
     try:
         response = create_dream(data)
-        return response, 201  
+        return response, 201
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
@@ -20,7 +20,7 @@ def retrieve_dream(dream_id):
         response = get_dream(dream_id)
         return response, 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 404  
+        return jsonify({'error': str(e)}), 404
 
 @dream_profile_bp.route('/dream/<int:dream_id>', methods=['PUT'])
 def edit_dream(dream_id):
