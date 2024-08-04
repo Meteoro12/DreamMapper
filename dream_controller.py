@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from dream_model import Dream  # Assuming dream_model is a module you've created for your Dream model
 import os
 from dotenv import load_dotenv
+from functools import wraps
 
 app = Flask(__name__)
 
@@ -9,51 +10,54 @@ app = Flask(__name__)
 load_dotenv()
 database_uri = os.getenv("DATABASE_URI")
 
-# Example function to connect to the database, modify as per your database setup
-def connect_to_database():
-    return None  # Add your database connection logic here
+# Basic in-memory cache for demonstration purposes
+cache = {
+    'dreams': None
+}
+
+def validate_dream_input(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        dream_data = request.json
+        if not dream_data or 'title' not in dream_data or 'description' not in dream_data:
+            return jsonify({'message': 'Missing title or description'}), 400
+        return f(*args, **kwargs)
+    return decorated_function
 
 @app.route('/dreams', methods=['POST'])
+@validate_dream_input
 def create_dream():
     # Connect to db
     db_connection = connect_to_database()
     dream_data = request.json
-    # Assuming Dream model has a method to save to DB
-    dream = Dream(title=dream_data.get('title'), description=dream_data.get('description'))
-    # Add your logic to save 'dream' to the database
+    dream = Dream(title=dream_data['title'], description=dream_data['description'])
+    # Logic to save 'dream' to the database
+    # Invalidate or update cache as necessary
+    cache['dreams'] = None  # Invalidate cache
     return jsonify({'message': 'Dream created successfully', 'data': dream_data}), 201
 
 @app.route('/dreams/<int:dream_id>', methods=['GET'])
 def get_dream(dream_id):
-    # Connect to db and get the dream by ID
     db_connection = connect_to_database()
-    dream = None  # Replace with your logic to get a dream by ID from the database
+    dream = None  # Replace with logic to get a dream by ID from the database
     if dream:
         return jsonify({'data': dream})
     else:
         return jsonify({'message': 'Dream not found'}), 404
 
-@app.route('/dreams/<int:dream_id>', methods=['PUT'])
-def update_dream(dream_id):
-    db_connection = connect_to_database()
-    dream_data = request.json
-    # Add your logic to find the dream by id and update it
-    updated_dream = None  # Replace with your logic to update a dream in the database
-    return jsonify({'message': 'Dream updated successfully', 'data': updated_dream}), 200
-
-@app.route('/dreams/<int:dream_id>', methods=['DELETE'])
-def delete_dream(dream_id):
-    db_connection = connect_to_database()
-    # Add your logic to find the dream by id and delete it
-    # Respond with a success message
-    return jsonify({'message': 'Dream deleted successfully'}), 204
-
 @app.route('/dreams', methods=['GET'])
 def list_dreams():
-    # Connect to db and get all dreams
+    # Check if dreams are in cache first
+    if cache['dreams'] is not None:
+        return jsonify({'data': cache['dreams']})
+
     db_connection = connect_to_database()
-    dreams = []  # Replace with your logic to fetch all dreams from the database
+    dreams = []  # Replace with logic to fetch all dreams from the database
+    cache['dreams'] = dreams  # Store dreams in cache
     return jsonify({'data': dreams})
+
+def connect_to_database():
+    return None  # Your database connection logic here
 
 if __name__ == "__main__":
     app.run(debug=True)
