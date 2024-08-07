@@ -1,16 +1,15 @@
 from flask import Flask, request, jsonify
-from dream_model import Dream  # Assuming dream_model is a module you've created for your Dream model
+from dream_model import Dream
 import os
 from dotenv import load_dotenv
 from functools import wraps
+import sqlite3
 
 app = Flask(__name__)
 
-# Load environment variables
 load_dotenv()
 database_uri = os.getenv("DATABASE_URI")
 
-# Basic in-memory cache for demonstration purposes
 cache = {
     'dreams': None
 }
@@ -24,40 +23,57 @@ def validate_dream_input(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def handle_db_connection_errors(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except sqlite3.Error as e:
+            print(f"Database error: {e}")
+            return jsonify({'message': 'Database error, please try again later.'}), 500
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            return jsonify({'message': 'Unexpected error occurred, please try again later.'}), 500
+    return decorated_function
+
 @app.route('/dreams', methods=['POST'])
 @validate_dream_input
+@handle_db_connection_errors
 def create_dream():
-    # Connect to db
     db_connection = connect_to_database()
     dream_data = request.json
     dream = Dream(title=dream_data['title'], description=dream_data['description'])
-    # Logic to save 'dream' to the database
-    # Invalidate or update cache as necessary
-    cache['dreams'] = None  # Invalidate cache
+    cache['dreams'] = None
     return jsonify({'message': 'Dream created successfully', 'data': dream_data}), 201
 
 @app.route('/dreams/<int:dream_id>', methods=['GET'])
+@handle_db_connection_errors
 def get_dream(dream_id):
     db_connection = connect_to_database()
-    dream = None  # Replace with logic to get a dream by ID from the database
+    dream = None
     if dream:
         return jsonify({'data': dream})
     else:
         return jsonify({'message': 'Dream not found'}), 404
 
 @app.route('/dreams', methods=['GET'])
+@handle_db_connection_errors
 def list_dreams():
-    # Check if dreams are in cache first
     if cache['dreams'] is not None:
         return jsonify({'data': cache['dreams']})
 
     db_connection = connect_to_database()
-    dreams = []  # Replace with logic to fetch all dreams from the database
-    cache['dreams'] = dreams  # Store dreams in cache
+    dreams = []
+    cache['dreams'] = dreams
     return jsonify({'data': dreams})
 
 def connect_to_database():
-    return None  # Your database connection logic here
+    try:
+        conn = sqlite3.connect(database_uri)
+        return conn
+    except sqlite3.Error as e:
+        print(f"Error connecting to database: {e}")
+        raise
 
 if __name__ == "__main__":
     app.run(debug=True)
