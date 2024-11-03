@@ -24,23 +24,30 @@ def fetch_dream_data(dream_id):
     except requests.exceptions.HTTPError as err:
         print(f"HTTP error occurred: {err}")
         return None
+    except requests.exceptions.ConnectionError as err:
+        print(f"Connection error occurred: {err}")
+        return None
     except Exception as err:
-        print(f"An error occurred: {err}")
+        print(f"An unexpected error occurred: {err}")
         return None
     return response.json()
 
 def preprocess_text(text):
-    stop_words = set(stopwords.words('english'))
-    lemmatizer = WordNetLemmatizer()
+    try:
+        stop_words = set(stopwords.words('english'))
+        lemmatizer = WordNetLemmatizer()
 
-    text = text.lower()
-    words = word_tokenize(text)
-    filtered_words = [word for word in words if word not in stop_words and word.isalpha()]
-    lemmatized_words = [lemmatizer.lemmatize(word) for word in filtered_words]
+        text = text.lower()
+        words = word_tokenize(text)
+        filtered_words = [word for word in words if word not in stop_words and word.isalpha()]
+        lemmatized_words = [lemmatizer.lemmatize(word) for word in filtered_words]
 
-    bi_grams_list = list(bigrams(lemmatized_words))
-    bi_grams = [' '.join(bi_gram) for bi_gram in bi_grams_list]
-
+        bi_grams_list = list(bigrams(lemmatized_words))
+        bi_grams = [' '.join(bi_gram) for bi_gram in bi_grams_list]
+    except Exception as e:
+        print(f"An error occurred during text preprocessing: {e}")
+        return []
+    
     return lemmatized_words + bi_grams
 
 def identify_common_themes(words):
@@ -55,30 +62,40 @@ def identify_common_themes(words):
     }
     themes_identified = {}
 
-    for word in words:
-        for theme, meaning in theme_keywords.items():
-            if theme in word:
-                if theme in themes_identified:
-                    themes_identified[theme]['count'] += 1
-                else:
-                    themes_identified[theme] = {'meaning': meaning, 'count': 1}
+    try:
+        for word in words:
+            for theme, meaning in theme_keywords.items():
+                if theme in word:
+                    if theme in themes_identified:
+                        themes_identified[theme]['count'] += 1
+                    else:
+                        themes_identified[theme] = {'meaning': meaning, 'count': 1}
+    except Exception as e:
+        print(f"An error occurred during theme identification: {e}")
+        return {}
 
     return themes_identified
 
 def generate_report(themes):
     if not themes:
         return "No significant themes identified."
-    report_lines = []
-    for theme, details in themes.items():
-        line = f"The theme '{theme}' related to '{details['meaning']}' was found {details['count']} times."
-        report_lines.append(line)
+    try:
+        report_lines = []
+        for theme, details in themes.items():
+            line = f"The theme '{theme}' related to '{details['meaning']}' was found {details['count']} times."
+            report_lines.append(line)
+    except Exception as e:
+        print(f"An error occurred during report generation: {e}")
+        return "Failed to generate report due to an error."
     return "\n".join(report_lines)
 
 def analyze_dream(dream_id):
     dream_data = fetch_dream_data(dream_id)
     if dream_data is None:
         return "Failed to fetch dream data."
-    dream_text = dream_data['content']
+    dream_text = dream_data.get('content', '')
+    if not dream_text:
+        return "Dream content is empty."
     processed_words = preprocess_text(dream_text)
     themes = identify_common_themes(processed_words)
     report = generate_report(themes)
