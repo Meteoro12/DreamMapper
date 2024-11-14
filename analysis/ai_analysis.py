@@ -90,17 +90,20 @@ def generate_report(themes):
     return "\n".join(report_lines)
 
 def analyze_dream(dream_id):
-    dream_data = fetch_dream_data(dream_id)
-    if dream_data is None:
-        return "Failed to fetch dream data."
-    dream_text = dream_data.get('content', '')
-    if not dream_text:
-        return "Dream content is empty."
-    processed_words = preprocess_text(dream_text)
-    themes = identify_common_themes(processed_words)
-    report = generate_report(themes)
+    try:
+        dream_data = fetch_dream_data(dream_id)
+        if dream_data is None:
+            return "Failed to fetch dream data."
+        dream_text = dream_data.get('content', '')
+        if not dream_text:
+            return "Dream content is empty."
+        processed_words = preprocess_text(dream_text)
+        themes = identify_common_themes(processed_words)
+        report = generate_report(themes)
 
-    return report
+        return report
+    except Exception as err:
+        return f"An error occurred during dream analysis: {err}"
 
 if __name__ == "__main__":
     dream_id = "example_dream_id"
