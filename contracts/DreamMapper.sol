@@ -10,7 +10,7 @@ contract DreamJournal {
 
     event DreamAdded(uint indexed dreamId, address indexed dreamCreator);
     event DreamUpdated(uint indexed dreamId, string updatedContent);
-    event DreamDeleted(uint indexed dreamId);
+    event DreamDeleted(uint dreamId);
     event DreamSharingStatusChanged(uint indexed dreamId, bool newSharingStatus);
 
     mapping(uint => Dream) private dreams;
@@ -48,5 +48,16 @@ contract DreamJournal {
         require(dreams[dreamId].id != 0, "Dream does not exist");
         Dream storage selectedDream = dreams[dreamId];
         return (selectedDream.content, selectedDream.creator, selectedDream.isShared);
+    }
+
+    function fetchMultipleDreamDetails(uint[] memory dreamIds) public view returns (Dream[] memory) {
+        Dream[] memory batchedDreams = new Dream[](dreamIds.length);
+        for (uint i = 0; i < dreamIds.length; i++) {
+            if (dreams[dreamIds[i]].id != 0) { // Ensure dream exists
+                Dream storage selectedDream = dreams[dreamIds[i]];
+                batchedDreams[i] = selectedDream;
+            }
+        }
+        return batchedDreams;
     }
 }
